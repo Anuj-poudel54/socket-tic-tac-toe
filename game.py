@@ -1,14 +1,20 @@
 import pygame
 import game_configs as configs
+from client_socket import ClientSocket
+from socket import socket
 
 # 1. Initialize Pygame
 pygame.init()
 
 class TicTacToe:
-    
-    def __init__(self) -> None:
+
+    def __init__(self, my_char:str | None = None, socket: socket | None = None) -> None:
         pygame.init()
-        self.board = self.init_board()
+
+        self.my_char = my_char
+        self.socket = socket
+
+        self.init_board()
         self._running = True
         self.turn = "X"
         self.won = False
@@ -23,7 +29,7 @@ class TicTacToe:
 
         # 3. Setup clock for frame rate control
         self.clock = pygame.time.Clock()
-        self.FPS = 60
+        self.FPS = configs.FPS
 
         self.winning_lists = [
             [0,1,2],
@@ -82,6 +88,13 @@ class TicTacToe:
                 self.game_surface.blit(text_surf, text_rect)
                 char_ind += 1
 
+    def _get_socket_msg(self):
+        if self.socket is None:
+            return None
+
+        msg = self.socket.recv(1024)
+        return msg
+
     def update(self):
         self.handle_events()
 
@@ -109,6 +122,11 @@ class TicTacToe:
         # 7. Control the frame rate
         self.clock.tick(self.FPS)
 
+    def _my_turn(self):
+        return not self.my_char or self.my_char == self.turn
+
+    def _can_draw_char_in(self, ind: int):
+        return self.board[ind] == "0" and not self.won and self._my_turn()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -118,18 +136,18 @@ class TicTacToe:
                 mouse_pos = pygame.mouse.get_pos()
                 for ind, rect in enumerate(self.rects):
                     rect.y += self.game_surface_rect.y
-                    if rect.collidepoint(mouse_pos) and self.board[ind] == "0" and not self.won:
+                    if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
                         self.board[ind] = self.turn
                         self.turn = "X" if self.turn == "O" else "O"
                         self.won, self.won_char, self.won_indexs = self.check_game_won()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and self.won:
-                self.board = list("0"*9)
+                self.init_board()
                 self.won = False
 
 
     def init_board(self):
-        return list("0"*9)
+        self.board = list("0"*9)
 
     def check_game_won(self):
         for wl in self.winning_lists:
@@ -155,5 +173,6 @@ class TicTacToe:
         return turn_text, turn_text_rect
 
 if __name__ == "__main__":
-    ttt = TicTacToe()
+    cs = ClientSocket()
+    ttt = TicTacToe(my_char="O", socket=cs)
     ttt.start_game_loop()
