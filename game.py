@@ -173,6 +173,6 @@ class TicTacToe:
         return turn_text, turn_text_rect
 
 if __name__ == "__main__":
-    cs = ClientSocket()
-    ttt = TicTacToe(my_char="O", socket=cs)
+    # cs = ClientSocket()
+    ttt = TicTacToe()
     ttt.start_game_loop()
