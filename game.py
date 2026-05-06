@@ -118,6 +118,11 @@ class TicTacToe:
         self.info_surface.fill(configs.OFFWHITE)
 
         turn_text, turn_text_rect = self.create_text(f"Turn: {self.turn}", configs.BLACK, None, center=self.info_surface_rect.center)
+
+        if self.socket:
+            my_char_text, my_char_text_rect = self.create_text(f"You: {self.my_char or 'X'}", configs.BLACK, None, center=(40, self.info_surface_rect.centery))
+            self.info_surface.blit(my_char_text, my_char_text_rect)
+
         self.info_surface.blit(turn_text, turn_text_rect)
         self.game_surface.fill(configs.GRAY)
 
