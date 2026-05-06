@@ -1,7 +1,6 @@
 import pygame
 import game_configs as configs
 from client_socket import ClientSocket
-from socket import socket
 
 
 class TicTacToe:
@@ -11,6 +10,8 @@ class TicTacToe:
 
         self.my_char = my_char
         self.other_char = "O" if my_char == "X" else "X"
+        if not my_char:
+            self.other_char = None
         self.socket = socket
 
         self.init_board()
@@ -69,6 +70,12 @@ class TicTacToe:
     def set_char(self, ind, char):
         self.board[ind] = char
 
+    def _toggle_turn(self):
+        if self.my_char:
+            self.turn = self.my_char if self.turn == self.other_char else self.other_char
+        else:
+            self.turn = "X" if self.turn == "O" else "O"
+
     def _render_board(self):
         char_ind = 0
         for i in range(3):
@@ -100,7 +107,7 @@ class TicTacToe:
             ind = int(msg)
             if self.board[ind] == "0":
                 self.board[ind] = self.other_char
-                self.turn = self.my_char
+                self._toggle_turn()
 
             self.check_game_won()
 
@@ -144,7 +151,7 @@ class TicTacToe:
                     rect.y += self.game_surface_rect.y
                     if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
                         self.board[ind] = self.turn
-                        self.turn = self.other_char
+                        self._toggle_turn()
 
                         if self.socket:
                             self.socket.update_board_at(ind)
@@ -188,6 +195,7 @@ class TicTacToe:
 
 if __name__ == "__main__":
     try:
+        print("Connecting to server...")
         cs = ClientSocket()
         my_char = cs._socket_msg
         print("Connected to server, waiting for other player...")
@@ -195,7 +203,6 @@ if __name__ == "__main__":
         ttt.start_game_loop()
         cs.close()
     except Exception as e:
-        raise e
         ttt = TicTacToe()
         print("Could not connect to server. Play offline :( !")
         ttt.start_game_loop()
