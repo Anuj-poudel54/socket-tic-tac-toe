@@ -35,25 +35,27 @@ class ServerSockert(socket.socket):
         msg = sock.recv(1024).decode()
         if not msg:
             return None
-        
-        return Message(msg)
-    
+
+        return msg
+
     def _handle_client_socket(self, sock: socket.socket):
         while True:
             msg = self._read_msg(sock)
             if not msg:
                 continue
-            if msg.msg_type == MessageType.IN_GAME:
-                room_id, msg = msg.msg.split(" ", 1)
-                self._broadcast_room(room_id, msg)
+
+            room_id, msg = msg.split(" ")
+            self._broadcast_room(room_id, msg)
 
     def _create_room(self, sock1: socket.socket, sock2: socket.socket):
         new_id = str(self._new_room_id())
         self.game_rooms[new_id] = (sock1, sock2)
-        self._broadcast_room(new_id, self._build_info_msg("MATCH_FOUND"))
+        # self._broadcast_room(new_id, self._build_info_msg("MATCH_FOUND"))
 
         Thread(target=self._handle_client_socket, args=(sock1,), daemon=True).start()
         Thread(target=self._handle_client_socket, args=(sock2,), daemon=True).start()
+
+        return new_id
 
     def _build_info_msg(self, msg: str):
         return ("I"+msg).encode()
@@ -65,9 +67,10 @@ class ServerSockert(socket.socket):
             sock, _ = self.accept()
             if self.waiter is None:
                 self.waiter = sock
-                sock.sendall(self._build_info_msg("waiting"))
+                sock.send(f"{self._new_room_id()} X".encode())
             else:
-                self._create_room(self.waiter, sock)
+                room_id = self._create_room(self.waiter, sock)
+                sock.send(f"{room_id} O".encode())
                 self.waiter = None
 
         self.close()

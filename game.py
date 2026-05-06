@@ -3,15 +3,14 @@ import game_configs as configs
 from client_socket import ClientSocket
 from socket import socket
 
-# 1. Initialize Pygame
-pygame.init()
 
 class TicTacToe:
 
-    def __init__(self, my_char:str | None = None, socket: socket | None = None) -> None:
+    def __init__(self, my_char:str | None = None, socket: ClientSocket | None = None) -> None:
         pygame.init()
 
         self.my_char = my_char
+        self.other_char = "O" if my_char == "X" else "X"
         self.socket = socket
 
         self.init_board()
@@ -92,11 +91,18 @@ class TicTacToe:
         if self.socket is None:
             return None
 
-        msg = self.socket.recv(1024)
-        return msg
+        return self.socket.msg
 
     def update(self):
         self.handle_events()
+        msg = self._get_socket_msg()
+        if msg is not None:
+            ind = int(msg)
+            if self.board[ind] == "0":
+                self.board[ind] = self.other_char
+                self.turn = self.my_char
+
+            self.check_game_won()
 
         # 6. Drawing / Rendering
         self.SCREEN.fill(configs.BLACK)  # Clear screen with black
@@ -138,8 +144,11 @@ class TicTacToe:
                     rect.y += self.game_surface_rect.y
                     if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
                         self.board[ind] = self.turn
-                        self.turn = "X" if self.turn == "O" else "O"
-                        self.won, self.won_char, self.won_indexs = self.check_game_won()
+                        self.turn = self.other_char
+
+                        if self.socket:
+                            self.socket.update_board_at(ind)
+                        self.check_game_won()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and self.won:
                 self.init_board()
@@ -159,9 +168,14 @@ class TicTacToe:
                 won = won and char == self.board[ind]
                 char = self.board[ind]
             if won:
-                return True, char, wl
+                self.won = True
+                self.won_char = char
+                self.won_indexs = wl
+                return
 
-        return False, "", []
+        self.won = False
+        self.won_char = ""
+        self.won_indexs = []
 
     def create_text(self, text: str, color, font: pygame.font.Font| None = None, **rect_kwargs):
         if font is None:
@@ -173,6 +187,16 @@ class TicTacToe:
         return turn_text, turn_text_rect
 
 if __name__ == "__main__":
-    # cs = ClientSocket()
-    ttt = TicTacToe()
-    ttt.start_game_loop()
+    try:
+        cs = ClientSocket()
+        my_char = cs._socket_msg
+        print("Connected to server, waiting for other player...")
+        ttt = TicTacToe(my_char=my_char, socket=cs)
+        ttt.start_game_loop()
+        cs.close()
+    except Exception as e:
+        raise e
+        ttt = TicTacToe()
+        print("Could not connect to server. Play offline :( !")
+        ttt.start_game_loop()
+

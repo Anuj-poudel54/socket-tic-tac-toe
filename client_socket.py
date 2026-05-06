@@ -6,10 +6,11 @@ class ClientSocket(socket.socket):
         super().__init__(socket.AF_INET, socket.SOCK_STREAM)
 
         self.connect(self._read_sock_address())
-        self.msg = None
-        Thread(target=self._start_reading_thread).start()
+        msg = self.recv(1024).decode()
+        self.room_id, self.msg = msg.split(" ")
+        Thread(target=self._listen_server).start()
 
-    def _start_reading_thread(self):
+    def _listen_server(self):
         while True:
             msg = self.recv(1024).decode()
             if not msg:
@@ -31,12 +32,16 @@ class ClientSocket(socket.socket):
         msg = self.msg
         self.msg = None
         return msg
-    
+
     def get_ind(self):
         msg = self._socket_msg
         if not msg:
             return None
         return msg
+
+    def update_board_at(self, ind: int):
+        msg = f"{self.room_id} {ind}"
+        self.send(msg.encode())
 
 if __name__ == "__main__":
     from time import sleep
