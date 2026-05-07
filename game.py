@@ -20,6 +20,7 @@ class TicTacToe:
         self.won = False
         self.won_char = ""
         self.won_indexs = []
+        self.draw = False
 
         # 2. Setup constants and window
         self.WIDTH, self.HEIGHT = configs.WINDOW_WIDTH, configs.WINDOW_HEIGHT
@@ -109,7 +110,7 @@ class TicTacToe:
                 self.board[ind] = self.other_char
                 self._toggle_turn()
 
-            self.check_game_won()
+            self.check_game_status()
 
         # 6. Drawing / Rendering
         self.SCREEN.fill(configs.BLACK)  # Clear screen with black
@@ -121,6 +122,10 @@ class TicTacToe:
 
         if self.socket:
             my_char_text, my_char_text_rect = self.create_text(f"You: {self.my_char or 'X'}", configs.BLACK, None, center=(40, self.info_surface_rect.centery))
+            self.info_surface.blit(my_char_text, my_char_text_rect)
+
+        if self.draw:
+            my_char_text, my_char_text_rect = self.create_text("DRAW", configs.BLACK, None, center=(self.info_surface_rect.centerx, 10))
             self.info_surface.blit(my_char_text, my_char_text_rect)
 
         self.info_surface.blit(turn_text, turn_text_rect)
@@ -160,7 +165,7 @@ class TicTacToe:
 
                         if self.socket:
                             self.socket.update_board_at(ind)
-                        self.check_game_won()
+                        self.check_game_status()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and self.won:
                 self.init_board()
@@ -170,7 +175,7 @@ class TicTacToe:
     def init_board(self):
         self.board = list("0"*9)
 
-    def check_game_won(self):
+    def check_game_status(self):
         for wl in self.winning_lists:
             char = self.board[wl[0]]
             if char == "0":
@@ -188,6 +193,10 @@ class TicTacToe:
         self.won = False
         self.won_char = ""
         self.won_indexs = []
+
+        if not self.won:
+            if self.board.count("0") == 0:
+                self.draw = True
 
     def create_text(self, text: str, color, font: pygame.font.Font| None = None, **rect_kwargs):
         if font is None:
