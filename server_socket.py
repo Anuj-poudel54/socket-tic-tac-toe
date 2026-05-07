@@ -1,18 +1,23 @@
 import socket
 from threading import Thread
-from message import Message, MessageType
 
 class ServerSockert(socket.socket):
 
     def __init__(self) -> None:
         super().__init__(socket.AF_INET, socket.SOCK_STREAM)
-        self.HOST = socket.gethostbyname(socket.gethostname())
-        self.HOST = "localhost"
+        self.HOST = self._get_server_host()
         self.PORT = 9000
         self.bind((self.HOST, self.PORT))
         self.clients: list[socket.socket] = []
         self.waiter: socket.socket | None = None
         self.game_rooms: dict[str, tuple[socket.socket, socket.socket]] = {}
+
+    def _get_server_host(self):
+        with open("server_host.txt", "r") as f:
+            host = f.readline()
+            if host == "self":
+                return socket.gethostbyname(socket.gethostname())
+        return host
 
     def _new_room_id(self):
         ids = list(self.game_rooms.keys())
