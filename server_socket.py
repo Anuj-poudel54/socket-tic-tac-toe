@@ -14,7 +14,7 @@ class ServerSockert(socket.socket):
 
     def _get_server_host(self):
         with open("server_host.txt", "r") as f:
-            host = f.readline()
+            host = f.readline().strip()
             if host == "self":
                 return socket.gethostbyname(socket.gethostname())
         return host

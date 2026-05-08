@@ -19,7 +19,7 @@ class ClientSocket(socket.socket):
 
     def _read_sock_address(self):
         with open("addr.txt", "r") as f:
-            addr = f.readline()
+            addr = f.readline().strip()
 
         addr, port = addr.split(" ")
         return (addr, int(port))
