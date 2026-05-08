@@ -151,7 +151,8 @@ class TicTacToe:
 
             self.check_game_status()
 
-        if self.turn == "O" and not self.won:
+        # bot (Offline)
+        if not self.socket and self.turn == "O" and not self.won:
             _, nex_ind= self.evaluate_minimax(self.board.copy(), self.turn)
             if self.board[nex_ind] == "0":
                 self.board[nex_ind] = "O"
