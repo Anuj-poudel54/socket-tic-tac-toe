@@ -37,7 +37,6 @@ class TicTacToe:
             [0,3,6],
             [0,4,8],
             [1,4,7],
-            [3,4,6],
             [6,7,8],
             [2,5,8],
             [2,4,6],
@@ -101,6 +100,46 @@ class TicTacToe:
 
         return self.socket.msg
 
+    def _calculate_score(self, depth: int, board_state: list[str], won, won_char):
+
+        score = 0
+        if (won and won_char == "X"):
+            score = depth - 10
+
+        elif (won and won_char == "O"):
+            score = 10 - depth
+
+        return score
+
+    def evaluate_minimax(self, board_state: list[str], turn: str, depth=0):
+
+        won, won_char, _, _ = self._check_game_status(board_state)
+        if won or "0" not in board_state:
+            return self._calculate_score(depth, board_state, won, won_char), -1
+
+        if turn == "X":
+            score = 9999999
+        elif turn == "O":
+            score = -9999999
+
+        ind = -1
+        for i in range(len(board_state)):
+            char = board_state[i]
+            if char != "0":
+                continue
+
+            board_state[i] = turn
+            _score, _ = self.evaluate_minimax(board_state, "X" if turn == "O" else "O", depth + 1)
+            if turn == "X":
+                score = min(score, _score)
+            else:
+                if _score > score:
+                    ind = i
+                    score = _score
+            board_state[i] = "0"
+
+        return score, ind
+
     def update(self):
         self.handle_events()
         msg = self._get_socket_msg()
@@ -111,6 +150,13 @@ class TicTacToe:
                 self._toggle_turn()
 
             self.check_game_status()
+
+        if self.turn == "O" and not self.won:
+            _, nex_ind= self.evaluate_minimax(self.board.copy(), self.turn)
+            if self.board[nex_ind] == "0":
+                self.board[nex_ind] = "O"
+                self.check_game_status()
+                self._toggle_turn()
 
         # 6. Drawing / Rendering
         self.SCREEN.fill(configs.BLACK)  # Clear screen with black
@@ -167,36 +213,42 @@ class TicTacToe:
                             self.socket.update_board_at(ind)
                         self.check_game_status()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and self.won:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.draw):
                 self.init_board()
-                self.won = False
 
 
     def init_board(self):
         self.board = list("0"*9)
+        self.won = False
 
-    def check_game_status(self):
+    def _check_game_status(self, board: list[str]):
+        won = False
+        won_char = ""
+        won_indexs = []
+        draw = False
         for wl in self.winning_lists:
-            char = self.board[wl[0]]
+            char = board[wl[0]]
             if char == "0":
                 continue
             won = True
             for ind in wl[1:]:
-                won = won and char == self.board[ind]
-                char = self.board[ind]
+                won = won and char == board[ind]
+                char = board[ind]
+
             if won:
-                self.won = True
-                self.won_char = char
-                self.won_indexs = wl
-                return
+                won_char = char
+                won_indexs = wl
+                break
 
-        self.won = False
-        self.won_char = ""
-        self.won_indexs = []
+        if not won:
+            if board.count("0") == 0:
+                draw = True
 
-        if not self.won:
-            if self.board.count("0") == 0:
-                self.draw = True
+        return won, won_char, won_indexs, draw
+
+
+    def check_game_status(self):
+        self.won, self.won_char, self.won_indexs, self.draw = self._check_game_status(self.board)
 
     def create_text(self, text: str, color, font: pygame.font.Font| None = None, **rect_kwargs):
         if font is None:
@@ -221,3 +273,4 @@ if __name__ == "__main__":
         print("Could not connect to server. Play offline :( !")
         ttt.start_game_loop()
 
+ 
