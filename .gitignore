@@ -1,2 +1,5 @@
 venv/
 *.pyc
+*.spec
+build/
+dist/
