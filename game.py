@@ -56,6 +56,9 @@ class TicTacToe:
         self.game_surface = pygame.surface.Surface((self.WIDTH, self.HEIGHT * .8), 0, self.SCREEN)
         self.game_surface_rect = self.game_surface.get_rect(topleft=(0, self.info_surface.get_height()))
 
+        self.menu_surface = pygame.surface.Surface((self.WIDTH, self.HEIGHT), 0, self.SCREEN)
+        self.menu_surface_rect = self.game_surface.get_rect(topleft=(0, 0))
+
         self.platform = self.game_surface
         self.pl_width = self.platform.get_width()
         self.pl_height = self.platform.get_height()
@@ -63,17 +66,17 @@ class TicTacToe:
         self.BOX_WIDTH = (self.pl_width) // 3
         self.BOX_HEIGHT = (self.pl_height) // 3
 
-        self.mode: Literal["m"] | Literal["g"] = "g"
+        self.mode: Literal["m"] | Literal["g"] = "m"
 
     def start_game_loop(self):
         while self._running:
 
-            self.SCREEN.fill(configs.BLACK)  # Clear screen with black
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._running = False
                 self.handle_events(event)
 
+            self.SCREEN.fill(configs.BLACK)  # Clear screen with black
             self.update()
 
             pygame.display.flip()  # Update the full display Surface to the screen
@@ -157,8 +160,26 @@ class TicTacToe:
         return score, ind
     
     def show_menu(self):
-        ...
+        
+        self.menu_surface.fill(configs.OFFWHITE)
 
+        btn_rect_height = 60
+        btn_rect_width = 150
+
+        x = self.menu_surface_rect.centerx - btn_rect_width/2
+        y = self.menu_surface_rect.centery
+
+        self.start_offline_rect = pygame.draw.rect(self.menu_surface, configs.GREEN, (x, y, btn_rect_width, btn_rect_height), 1)
+        text, text_rect = self.create_text("Start Offline Game", configs.GREEN, None, center=self.start_offline_rect.center, char_size=configs.BTN_CHAR_SIZE)
+        self.menu_surface.blit(text, text_rect)
+
+        x = self.start_offline_rect.x
+        y = self.start_offline_rect.y + self.start_offline_rect.height + 10
+        self.start_online_rect = pygame.draw.rect(self.menu_surface, configs.GREEN, (x, y, btn_rect_width, btn_rect_height), 1)
+        text, text_rect = self.create_text("Start Online Game", configs.GREEN, None, center=self.start_online_rect.center, char_size=configs.BTN_CHAR_SIZE)
+        self.menu_surface.blit(text, text_rect)
+
+        self.SCREEN.blit(self.menu_surface, self.menu_surface_rect)
 
     def update(self):
         if self.mode == "m":
@@ -221,12 +242,20 @@ class TicTacToe:
 
     def _can_draw_char_in(self, ind: int):
         return self.board[ind] == "0" and not self.won and self._my_turn()
+    
 
     def handle_events(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
+
+            if self.mode == "m" and self.start_offline_rect.collidepoint(mouse_pos):
+                self.mode = "g"
+                return
+
+            # In-game events
             for ind, rect in enumerate(self.rects):
                 rect.y += self.game_surface_rect.y
+
                 if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
                     self.board[ind] = self.turn
                     self._toggle_turn()
@@ -276,11 +305,11 @@ class TicTacToe:
     def check_game_status(self):
         self.won, self.won_char, self.won_indexs, self.game_draw = self._check_game_status(self.board)
 
-    def create_text(self, text: str, color, font: pygame.font.Font| None = None, **rect_kwargs):
+    def create_text(self, text: str, color, font: pygame.font.Font | None = None, char_size: int | None = None, **rect_kwargs):
         if font is None:
-            font = pygame.font.SysFont(None, configs.CHAR_SIZE)
+            font = pygame.font.SysFont(None, char_size or configs.CHAR_SIZE)
 
-        turn_text = self.info_font.render(text, 1, color)
+        turn_text = font.render(text, 1, color)
         turn_text_rect = turn_text.get_rect(**rect_kwargs)
 
         return turn_text, turn_text_rect
