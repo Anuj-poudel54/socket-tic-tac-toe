@@ -262,7 +262,6 @@ class TicTacToe:
 
 if __name__ == "__main__":
     try:
-        raise Exception
         print("Connecting to server...")
         cs = ClientSocket()
         my_char = cs._socket_msg
