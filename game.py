@@ -153,7 +153,13 @@ class TicTacToe:
 
         # bot (Offline)
         if not self.socket and self.turn == self.other_char and not self.won:
-            _, nex_ind= self.evaluate_minimax(self.board.copy(), self.turn)
+
+            if self.random_index_bot != -1:
+                nex_ind = self.random_index_bot
+                self.random_index_bot = -1
+            else:
+                _, nex_ind= self.evaluate_minimax(self.board.copy(), self.turn)
+
             if self.board[nex_ind] == "0":
                 self.board[nex_ind] = self.other_char
                 self.check_game_status()
@@ -212,6 +218,8 @@ class TicTacToe:
 
                         if self.socket:
                             self.socket.update_board_at(ind)
+                        else:
+                            self.random_index_bot = -1
                         self.check_game_status()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.game_draw):
@@ -221,6 +229,8 @@ class TicTacToe:
     def init_board(self):
         self.board = list("0"*9)
         self.won = False
+        # random index for bot to pick if it is first to play.
+        self.random_index_bot = random.randint(0, 8)
 
     def _check_game_status(self, board: list[str]):
         won = False
