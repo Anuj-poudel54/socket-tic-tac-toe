@@ -1,6 +1,8 @@
 import pygame
 import game_configs as configs
+from game_configs import CHAR_1, CHAR_2
 from client_socket import ClientSocket
+import random
 
 
 class TicTacToe:
@@ -8,19 +10,17 @@ class TicTacToe:
     def __init__(self, my_char:str | None = None, socket: ClientSocket | None = None) -> None:
         pygame.init()
 
-        self.my_char = my_char
-        self.other_char = "O" if my_char == "X" else "X"
-        if not my_char:
-            self.other_char = None
+        self.my_char = my_char or random.choices([CHAR_1, CHAR_2])[0]
+        self.other_char = CHAR_2 if my_char == CHAR_1 else CHAR_1
         self.socket = socket
 
         self.init_board()
         self._running = True
-        self.turn = "X"
+        self.turn = random.choices([CHAR_1, CHAR_2])[0]
         self.won = False
         self.won_char = ""
         self.won_indexs = []
-        self.draw = False
+        self.game_draw = False
 
         # 2. Setup constants and window
         self.WIDTH, self.HEIGHT = configs.WINDOW_WIDTH, configs.WINDOW_HEIGHT
@@ -70,11 +70,11 @@ class TicTacToe:
     def set_char(self, ind, char):
         self.board[ind] = char
 
+    def _next_turn(self, char):
+        return CHAR_1 if self.turn == CHAR_2 else CHAR_2
+
     def _toggle_turn(self):
-        if self.my_char:
-            self.turn = self.my_char if self.turn == self.other_char else self.other_char
-        else:
-            self.turn = "X" if self.turn == "O" else "O"
+        self.turn = self.my_char if self.turn == self.other_char else self.other_char
 
     def _render_board(self):
         char_ind = 0
@@ -100,13 +100,13 @@ class TicTacToe:
 
         return self.socket.msg
 
-    def _calculate_score(self, depth: int, board_state: list[str], won, won_char):
+    def _calculate_score(self, depth: int, won, won_char):
 
         score = 0
-        if (won and won_char == "X"):
+        if (won and won_char == self.my_char):
             score = depth - 10
 
-        elif (won and won_char == "O"):
+        elif (won and won_char == self.other_char):
             score = 10 - depth
 
         return score
@@ -115,11 +115,11 @@ class TicTacToe:
 
         won, won_char, _, _ = self._check_game_status(board_state)
         if won or "0" not in board_state:
-            return self._calculate_score(depth, board_state, won, won_char), -1
+            return self._calculate_score(depth, won, won_char), -1
 
-        if turn == "X":
+        if turn == self.my_char:
             score = 9999999
-        elif turn == "O":
+        elif turn == self.other_char:
             score = -9999999
 
         ind = -1
@@ -129,8 +129,8 @@ class TicTacToe:
                 continue
 
             board_state[i] = turn
-            _score, _ = self.evaluate_minimax(board_state, "X" if turn == "O" else "O", depth + 1)
-            if turn == "X":
+            _score, _ = self.evaluate_minimax(board_state, self._next_turn(turn), depth + 1)
+            if turn == self.my_char:
                 score = min(score, _score)
             else:
                 if _score > score:
@@ -152,10 +152,10 @@ class TicTacToe:
             self.check_game_status()
 
         # bot (Offline)
-        if not self.socket and self.turn == "O" and not self.won:
+        if not self.socket and self.turn == self.other_char and not self.won:
             _, nex_ind= self.evaluate_minimax(self.board.copy(), self.turn)
             if self.board[nex_ind] == "0":
-                self.board[nex_ind] = "O"
+                self.board[nex_ind] = self.other_char
                 self.check_game_status()
                 self._toggle_turn()
 
@@ -171,7 +171,7 @@ class TicTacToe:
             my_char_text, my_char_text_rect = self.create_text(f"You: {self.my_char or 'X'}", configs.BLACK, None, center=(40, self.info_surface_rect.centery))
             self.info_surface.blit(my_char_text, my_char_text_rect)
 
-        if self.draw:
+        if self.game_draw:
             my_char_text, my_char_text_rect = self.create_text("DRAW", configs.BLACK, None, center=(self.info_surface_rect.centerx, 10))
             self.info_surface.blit(my_char_text, my_char_text_rect)
 
@@ -214,7 +214,7 @@ class TicTacToe:
                             self.socket.update_board_at(ind)
                         self.check_game_status()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.draw):
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.game_draw):
                 self.init_board()
 
 
@@ -249,7 +249,7 @@ class TicTacToe:
 
 
     def check_game_status(self):
-        self.won, self.won_char, self.won_indexs, self.draw = self._check_game_status(self.board)
+        self.won, self.won_char, self.won_indexs, self.game_draw = self._check_game_status(self.board)
 
     def create_text(self, text: str, color, font: pygame.font.Font| None = None, **rect_kwargs):
         if font is None:
@@ -262,6 +262,7 @@ class TicTacToe:
 
 if __name__ == "__main__":
     try:
+        raise Exception
         print("Connecting to server...")
         cs = ClientSocket()
         my_char = cs._socket_msg
