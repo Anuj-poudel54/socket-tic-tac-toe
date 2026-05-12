@@ -11,12 +11,12 @@ class TicTacToe:
         pygame.init()
 
         self.my_char = my_char or random.choices([CHAR_1, CHAR_2])[0]
-        self.other_char = CHAR_2 if my_char == CHAR_1 else CHAR_1
+        self.other_char = CHAR_2 if self.my_char == CHAR_1 else CHAR_1
         self.socket = socket
 
+        self.turn = random.choices([CHAR_1, CHAR_2])[0]
         self.init_board()
         self._running = True
-        self.turn = random.choices([CHAR_1, CHAR_2])[0]
         self.won = False
         self.won_char = ""
         self.won_indexs = []
@@ -119,7 +119,7 @@ class TicTacToe:
 
         if turn == self.my_char:
             score = 9999999
-        elif turn == self.other_char:
+        else:
             score = -9999999
 
         ind = -1
