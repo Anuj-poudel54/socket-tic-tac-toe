@@ -3,6 +3,7 @@ import game_configs as configs
 from game_configs import CHAR_1, CHAR_2
 from client_socket import ClientSocket
 import random
+import sys
 
 
 class TicTacToe:
@@ -271,6 +272,12 @@ class TicTacToe:
         return turn_text, turn_text_rect
 
 if __name__ == "__main__":
+    args = sys.argv[1:]
+    if args and args[0] == "o": # offline mode
+        ttt = TicTacToe()
+        ttt.start_game_loop()
+        sys.exit(0)
+
     try:
         print("Connecting to server...")
         cs = ClientSocket()
