@@ -4,6 +4,7 @@ from game_configs import CHAR_1, CHAR_2
 from client_socket import ClientSocket
 import random
 import sys
+from typing import Literal
 
 
 class TicTacToe:
@@ -62,9 +63,23 @@ class TicTacToe:
         self.BOX_WIDTH = (self.pl_width) // 3
         self.BOX_HEIGHT = (self.pl_height) // 3
 
+        self.mode: Literal["m"] | Literal["g"] = "g"
+
     def start_game_loop(self):
         while self._running:
+
+            self.SCREEN.fill(configs.BLACK)  # Clear screen with black
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self._running = False
+                self.handle_events(event)
+
             self.update()
+
+            pygame.display.flip()  # Update the full display Surface to the screen
+
+            # 7. Control the frame rate
+            self.clock.tick(self.FPS)
 
         pygame.quit()
 
@@ -140,9 +155,16 @@ class TicTacToe:
             board_state[i] = "0"
 
         return score, ind
+    
+    def show_menu(self):
+        ...
+
 
     def update(self):
-        self.handle_events()
+        if self.mode == "m":
+            self.show_menu()
+            return
+            
         msg = self._get_socket_msg()
         if msg is not None:
             ind = int(msg)
@@ -167,7 +189,6 @@ class TicTacToe:
                 self._toggle_turn()
 
         # 6. Drawing / Rendering
-        self.SCREEN.fill(configs.BLACK)  # Clear screen with black
         self.SCREEN.blit(self.info_surface, (0, 0))
         self.SCREEN.blit(self.game_surface, self.game_surface_rect)
         self.info_surface.fill(configs.OFFWHITE)
@@ -194,10 +215,6 @@ class TicTacToe:
         self.rects.clear()
         self._render_board()
 
-        pygame.display.flip()  # Update the full display Surface to the screen
-
-        # 7. Control the frame rate
-        self.clock.tick(self.FPS)
 
     def _my_turn(self):
         return not self.my_char or self.my_char == self.turn
@@ -205,26 +222,23 @@ class TicTacToe:
     def _can_draw_char_in(self, ind: int):
         return self.board[ind] == "0" and not self.won and self._my_turn()
 
-    def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self._running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = pygame.mouse.get_pos()
-                for ind, rect in enumerate(self.rects):
-                    rect.y += self.game_surface_rect.y
-                    if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
-                        self.board[ind] = self.turn
-                        self._toggle_turn()
+    def handle_events(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            for ind, rect in enumerate(self.rects):
+                rect.y += self.game_surface_rect.y
+                if rect.collidepoint(mouse_pos) and self._can_draw_char_in(ind):
+                    self.board[ind] = self.turn
+                    self._toggle_turn()
 
-                        if self.socket:
-                            self.socket.update_board_at(ind)
-                        else:
-                            self.random_index_bot = -1
-                        self.check_game_status()
+                    if self.socket:
+                        self.socket.update_board_at(ind)
+                    else:
+                        self.random_index_bot = -1
+                    self.check_game_status()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.game_draw):
-                self.init_board()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN and (self.won or self.game_draw):
+            self.init_board()
 
 
     def init_board(self):
